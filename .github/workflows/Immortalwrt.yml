@@ -15,7 +15,7 @@
 #
 #
 
-name: 天灵源码
+name: Immortalwrt-天灵
 on:
   workflow_dispatch:
     inputs:
