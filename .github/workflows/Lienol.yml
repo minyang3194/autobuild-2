@@ -15,7 +15,7 @@
 #
 #
 
-name: Lienol源码
+name: Lienol-源码
 on:
   workflow_dispatch:
     inputs:
