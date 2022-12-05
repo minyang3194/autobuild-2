@@ -115,6 +115,7 @@ jobs:
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
 
     env:
+      SOURCE_CODE: AMLOGIC
       FOLDER_NAME: ${{ matrix.target }}
     strategy:
       fail-fast: false
@@ -140,7 +141,6 @@ jobs:
         git clone https://github.com/281677160/common-main build/common
         mv -f build/common/*.sh build/${{matrix.target}}/
         chmod -R +x build
-        export SOURCE_CODE="AMLOGIC"
         export INPUTS_INFORMATION_NOTICE="${{ github.event.inputs.INFORMATION_NOTICE }}"
         export INPUTS_REPO_BRANCH="${{ github.event.inputs.REPO_BRANCH }}"
         export INPUTS_CONFIG_FILE="various-config/${{ github.event.inputs.CONFIG_FILE }}"
