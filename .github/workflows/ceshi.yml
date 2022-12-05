@@ -15,12 +15,37 @@
 #
 #
 
-name: 触发compile启动编译
+name: 天灵源码
 on:
   workflow_dispatch:
     inputs:
-      cpu:
-        description: 'cpu优选,默认弃用E5系列CPU'
+      REPO_BRANCH:
+        description: '天灵源码-请选择分支'
+        required: false
+        default: 'openwrt-21.02'
+        type: choice
+        options:
+          - 'openwrt-21.02'
+          - 'openwrt-18.06-k5.4'
+          - 'openwrt-18.06'
+          - 'master'
+      CONFIG_FILE:
+        description: '配置文件'
+        required: false
+        default: 'x86_64'
+        type: choice
+        options:
+          - 'asus_rt-acrh17'
+          - 'd-team_newifi-d2'
+          - 'p2w_r619ac-128m'
+          - 'x86_32'
+          - 'x86_64'
+          - 'xiaomi_mi-router-4a-gigabit'
+          - 'xiaomi_redmi-router-ac2100'
+          - 'xiaomi_redmi-router-ax6s'
+          - 'xiaoyu_xy-c5'
+      CPU_SELECTION:
+        description: 'CPU优选,增加编译速度'
         required: false
         default: '弃用E5系列'
         type: choice
@@ -29,49 +54,45 @@ on:
           - '选择8370C'
           - '选择8272CL'
           - '选择8171M'
-      ssh:
-        description: 'SSH连接配置固件'
+      INFORMATION_NOTICE:
+        description: 'Telegram或pushplus信息通知'
         required: false
         default: '关闭'
         type: choice
         options:
           - '关闭'
-          - '开启'
-      days:
-        description: '清理[X]天之前的Actions空间操作记录'
+          - 'Telegram'
+          - 'pushplus'
+      SSH_ACTION:
+        description: 'SSH远程配置固件'
         required: false
-        default: '7'
-        type: choice
-        options:
-          - '0.5'
-          - '7'
-          - '10'
-          - '15'
-          - '20'
-          - '30'
-          - '90'
-      rele:
-        description: '保留[X]个Releases不被删除'
+        default: 'false'
+        type: boolean
+      UPLOAD_FIRMWARE:
+        description: '上传固件到 Github Artifacts'
         required: false
-        default: '10'
-        type: choice
-        options:
-          - '0'
-          - '10'
-          - '15'
-          - '20'
-          - '30'
-          - '90'
-      fork:
-        description: '同步上游仓库,请注意,这个跟编译无关,就同步上游仓库使用的'
+        default: 'true'
+        type: boolean
+      UPLOAD_RELEASE:
+        description: '上传固件到 Github Releases'
         required: false
-        default: '关闭'
-        type: choice
-        options:
-          - '关闭'
-          - '更新diy-part.sh和settings.ini,带备份'
-          - '更新diy-part.sh和settings.ini,不要备份'
-          - '拉取整个上游仓库覆盖您现在的仓库'
+        default: 'false'
+        type: boolean
+      CACHEWRTBUILD_SWITCH:
+        description: '缓存加速编译'
+        required: false
+        default: 'true'
+        type: boolean
+      UPDATE_FIRMWARE_ONLINE:
+        description: '增加在线更新固件功能'
+        required: false
+        default: 'true'
+        type: boolean
+      COLLECTED_PACKAGES:
+        description: '是否加入作者收集的插件包'
+        required: false
+        default: 'true'
+        type: boolean
 
 
 # 定时触发开启开始编译(把下面两个#去掉开启,时间设置请看定时开启编译说明)
@@ -85,11 +106,9 @@ env:
   RUN_NUMBER: ${{github.run_number}}
   RUN_WORKFLOW: ${{github.workflow}}
   REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
-  SCKEY: ${{ secrets.SCKEY }}
   PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-  TONGBU_CANGKU: 1
   TZ: Asia/Shanghai
 
 jobs:
@@ -97,18 +116,23 @@ jobs:
     name: 编译 "${{matrix.target}}"
     runs-on: ubuntu-20.04
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
-    
+
     env:
       FOLDER_NAME: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
-        target: [Lede,Immortalwrt,Lienol,Xwrt,Official]
-
-        # [Lede,Immortalwrt,Lienol,Xwrt,Official,Amlogic]
-
-    
+        target: [Immortalwrt]
+        
     steps:
+    - name: 密匙检测（密匙为空则退出）
+      run: |
+        if [[ -z "${{ secrets.REPO_TOKEN }}" ]]; then
+          echo "您没有设置仓库密匙，请按教程设置好密匙再来"
+          echo "REPO_TOKEN密匙制作教程：https://git.io/jm.md"
+          exit 1
+        fi
+    
     - name: 准备结束
       uses: actions/checkout@v3
 
@@ -118,39 +142,18 @@ jobs:
         git clone https://github.com/281677160/common-main build/common
         mv -f build/common/*.sh build/${{matrix.target}}/
         chmod -R +x build
+        export SOURCE_CODE="IMMORTALWRT"
+        export INPUTS_INFORMATION_NOTICE="${{ github.event.inputs.INFORMATION_NOTICE }}"
+        export INPUTS_REPO_BRANCH="${{ github.event.inputs.REPO_BRANCH }}"
+        export INPUTS_CONFIG_FILE="various-config/${{ github.event.inputs.CONFIG_FILE }}"
+        export INPUTS_UPLOAD_FIRMWARE="${{ github.event.inputs.UPLOAD_FIRMWARE }}"
+        export INPUTS_UPLOAD_RELEASE="${{ github.event.inputs.UPLOAD_RELEASE }}"
+        export INPUTS_CACHEWRTBUILD_SWITCH="${{ github.event.inputs.CACHEWRTBUILD_SWITCH }}"
+        export INPUTS_UPDATE_FIRMWARE_ONLINE="${{ github.event.inputs.UPDATE_FIRMWARE_ONLINE }}"
+        export INPUTS_COLLECTED_PACKAGES="${{ github.event.inputs.COLLECTED_PACKAGES }}"
+        export INPUTS_CPU_SELECTION="${{ github.event.inputs.CPU_SELECTION }}"
+        source build/${{matrix.target}}/common.sh && settings_variable
         source build/${{matrix.target}}/common.sh && Diy_menu1
-        echo "retain_days=${{ github.event.inputs.days }}" >> ${GITHUB_ENV}
-        echo "keep_latest=${{ github.event.inputs.rele }}" >> ${GITHUB_ENV}
-        if [[ -z "${{ github.event.inputs.cpu }}" ]]; then
-          echo "TIMED_TRIGGER=true" >> ${GITHUB_ENV}
-        else
-          echo "cpu_youxuan=${{ github.event.inputs.cpu }}" >> ${GITHUB_ENV}
-        fi
-          
-        if [[ "${{ github.event.inputs.fork }}" == '关闭' ]] || [[ -z "${{ github.event.inputs.fork }}" ]]; then
-          echo "again-fork=0" >> ${GITHUB_ENV}
-        elif [[ "${{ github.event.inputs.fork }}" == '更新diy-part.sh和settings.ini,带备份' ]]; then
-          echo "again-fork=1" >> ${GITHUB_ENV}
-        elif [[ "${{ github.event.inputs.fork }}" == '更新diy-part.sh和settings.ini,不要备份' ]]; then
-          echo "again-fork=2" >> ${GITHUB_ENV}
-        elif [[ "${{ github.event.inputs.fork }}" == '拉取整个上游仓库覆盖您现在的仓库' ]]; then
-          echo "again-fork=3" >> ${GITHUB_ENV}
-        fi
-
-    
-    - name: 以下为定时触发编译手动修改配置
-      if: env.TIMED_TRIGGER == 'true'
-      env:
-        # 定时编译的时候可以把[弃用E5系列]修改成您指定的CPU型号
-        cpu_youxuan: 弃用E5系列
-        # 清理[X]天之前的Actions空间操作记录
-        retain_days: 7
-        # 保留[X]个Releases不被删除
-        keep_latest: 10
-      run: |
-        echo "cpu_youxuan=${cpu_youxuan}" >> ${GITHUB_ENV}
-        echo "retain_days=${retain_days}" >> ${GITHUB_ENV}
-        echo "keep_latest=${keep_latest}" >> ${GITHUB_ENV}
         
     - name: 部署编译环境
       env:
@@ -163,9 +166,15 @@ jobs:
         sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
-
+        
+        
+    - name: SSH远程连接（制作.config配置文件）
+      uses: danshui-git/debugger-action@main
+      env:
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+    
     - name: 下载"${{matrix.target}}"源码
-      if: env.REPO_TOKEN && env.again-fork == '0'
       working-directory: /${{ env.DIY_WORK }}
       run: |
         git clone -b "${REPO_BRANCH}" --single-branch "${REPO_URL}" openwrt
@@ -173,7 +182,7 @@ jobs:
         source ${GITHUB_WORKSPACE}/build/${{matrix.target}}/common.sh && Diy_checkout
     
     - name: 公 告
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       run: |
         cd ${GITHUB_WORKSPACE}
         cp -Rf `find ./ -maxdepth 1 -type d ! -path './openwrt' ! -path './'` openwrt
@@ -181,14 +190,14 @@ jobs:
         source build/${{matrix.target}}/common.sh && Diy_menu2
  
     - name: 增加插件源
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       continue-on-error: true
       run: |
         cd openwrt
         source ${BUILD_PATH}/common.sh && Diy_menu3
  
     - name: 加载diy-part.sh文件
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       continue-on-error: true
       run: |
         cd openwrt
@@ -196,28 +205,28 @@ jobs:
         source build/${{matrix.target}}/common.sh && Diy_Publicarea
         
     - name: 加载源、补丁和files文件夹
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       continue-on-error: true
       run: |
         cd openwrt
         source ${BUILD_PATH}/common.sh && Diy_menu4
-
+    
     - name: SSH远程连接（制作.config配置文件）
-      if: env.SSH_ACTIONS == 'true' || (github.event.inputs.ssh == '开启')
+      if: github.event.inputs.SSH_ACTION == 'true'
       uses: danshui-git/debugger-action@main
       env:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
 
     - name: 生成"${{matrix.target}}"配置文件
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       id: compile
       run: |
         cd openwrt
         source ${BUILD_PATH}/common.sh && Diy_menu5
         
     - name: 上传.config配置文件在 github actions
-      if: env.UPLOAD_CONFIG == 'true' && env.again-fork == '0'
+      if: steps.compile.outcome == 'success'
       continue-on-error: true
       uses: actions/upload-artifact@main
       with:
@@ -226,15 +235,14 @@ jobs:
     
     - name: 触发compile.yml启动"${{matrix.target}}"编译
       id: gitpush
-      if: steps.compile.outcome == 'success' && env.REPO_TOKEN && env.again-fork == '0'
+      if: steps.compile.outcome == 'success' && env.REPO_TOKEN
       run: |
         cd ${GITHUB_WORKSPACE}
         source ${BUILD_PATH}/common.sh && build_openwrt
-
         
     - name: 电报机器人或pushplus信息通知
       continue-on-error: true
-      if: env.PUSH_PLUS_TOKEN && env.INFORMATION_NOTICE == 'PUSH' && env.again-fork == '0' || env.TELEGRAM_BOT_TOKEN && env.INFORMATION_NOTICE == 'TG' && env.again-fork == '0'
+      if: env.PUSH_PLUS_TOKEN && env.INFORMATION_NOTICE == 'PUSH' || env.TELEGRAM_BOT_TOKEN && env.INFORMATION_NOTICE == 'TG'
       run: |
         if [[ "${{ env.INFORMATION_NOTICE }}" == "TG" ]]; then
           if [[ "${{steps.gitpush.outcome}}" == 'success' ]] && [[ "${{steps.compile.outcome}}" == 'success' ]]; then
@@ -255,52 +263,28 @@ jobs:
         
     - name: 编译信息
       continue-on-error: true
-      if: env.COMPILATION_INFORMATION == 'true' && env.again-fork == '0'
+      if: env.COMPILATION_INFORMATION == 'true'
       run: |
         cd openwrt
         source ${BUILD_PATH}/common.sh && Diy_xinxi
     
     - name: 清理Actions空间
       continue-on-error: true
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       uses: Mattraks/delete-workflow-runs@v2
       with:
           token: ${{ secrets.REPO_TOKEN }}
           repository: ${{ github.repository }}
-          retain_days: ${{ env.retain_days }}
-          keep_minimum_runs: 0
+          retain_days: ${{ env.RETAIN_DAYS }}
+          keep_minimum_runs: 1
     
     - name: 删除releases
       continue-on-error: true
-      if: env.REPO_TOKEN && env.again-fork == '0'
+      if: env.REPO_TOKEN
       uses: danshui-git/delete-older-releases@main
       with:
         repo: ${{ github.repository }}
-        keep_latest: ${{ env.keep_latest }}
+        keep_latest: ${{ env.KEEP_LATEST }}
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
-        
-    - name: 同步更新上游仓库
-      if: env.REPO_TOKEN && env.again-fork != '0'
-      run: |
-        cd ${GITHUB_WORKSPACE}
-        git clone -b main https://github.com/281677160/autobuild.git shangyou
-        git clone -b main https://github.com/${{github.repository}}.git repogx
-        if [[ "${{ env.again-fork }}" == "1" ]]; then
-          bash <(curl -fsSL https://raw.githubusercontent.com/281677160/common-main/main/bendi/tongbu.sh)
-        elif [[ "${{ env.again-fork }}" == "2" ]]; then
-          export BENDI_SHANCHUBAK="1"
-          bash <(curl -fsSL https://raw.githubusercontent.com/281677160/common-main/main/bendi/tongbu.sh)
-        elif [[ "${{ env.again-fork }}" == "3" ]]; then
-          rm -rf repogx/*
-          cp -Rf shangyou/* repogx/
-        else
-          echo "关闭同步更新上游仓库"
-        fi
-        sudo chmod -R +x ${GITHUB_WORKSPACE}/repogx
-        cd ${GITHUB_WORKSPACE}/repogx
-        git add .
-        git commit -m "Update $(date +%Y-%m%d-%H%M%S)"
-        git push --quiet "https://${{ secrets.REPO_TOKEN }}@github.com/${{github.repository}}" HEAD:main
-        echo "同步完成，请注意查看[diy-part.sh]和[settings.ini]文件的变化和设置好!"
