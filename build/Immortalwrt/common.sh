@@ -85,8 +85,8 @@ if [[ -n "${INPUTS_REPO_BRANCH}" ]]; then
   sed -i "s?${CPU_SELECTION1}?${CPU_SELECTION2}?g" "${ymlsettings}"
   sed -i "s?${INFORMATION_NOTICE1}?${INFORMATION_NOTICE2}?g" "${ymlsettings}"
   START_TIME=`date +'%Y-%m-%d %H:%M:%S'`
-  START_SECONDS=$(date --date="$START_TIME" +%s)
-  mv "${ymlsettings}" build/${FOLDER_NAME}/start-up/${START_SECONDS}.ini
+  t1=`date -d "$START_TIME" +%s`
+  mv "${ymlsettings}" build/${FOLDER_NAME}/start-up/${t1}.ini
 fi
 }
 
@@ -95,16 +95,16 @@ if [[ -n "${BENDI_VERSION}" ]]; then
   source "${GITHUB_WORKSPACE}/DIY-SETUP/${FOLDER_NAME}/settings.ini"
 else
   if [[ `ls -1 "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/start-up" |grep -Eoc '[0-9]+\.ini'` -ge '1' ]]; then
-    START_SECOND="$(ls -1 "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/start-up" |grep -Eo '[0-9]+\.ini' |awk 'END {print}' |grep -Eo '[0-9]+')"
+    t1="$(ls -1 "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/start-up" |grep -Eo '[0-9]+\.ini' |awk 'END {print}' |grep -Eo '[0-9]+')"
     END_TIME=`date +'%Y-%m-%d %H:%M:%S'`
-    END_SECONDS=$(date --date="$END_TIME" +%s)
-    SECONDS=$((END_SECONDS-START_SECONDS))
+    t2=`date -d "$END_TIME" +%s`
+    SECONDS=$((t2-t1))
     HOUR=$(( $SECONDS/3600 ))
     MIN=$(( ($SECONDS-${HOUR}*3600)/60 ))
     echo "${MIN}"
-    if [[ "${MIN}" -lt "6" ]]; then
-      source "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/start-up/${START_SECOND}.ini"
-      echo "运行start-up/${START_SECOND}.ini"
+    if [[ "${MIN}" -lt "3" ]]; then
+      source "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/start-up/${t1}.ini"
+      echo "运行start-up/${t1}.ini"
     else
       source "${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/settings.ini"
     fi
@@ -384,6 +384,7 @@ if [[ `ls -1 "build/${FOLDER_NAME}/start-up" |grep -Eoc '[0-9]+\.ini'` -ge '1' ]
   START_SECONDS=$(date --date="$START_TIME" +%s)
   mv "build/${FOLDER_NAME}/start-up/${START_SECON}.ini" ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${START_SECONDS}.ini
 fi
+echo "${START_SECONDSs}.ini"
 echo "${SOURCE}$(date +%Y年%m月%d号%H时%M分%S秒)" > ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/start
 cd ${FOLDER_NAME}
 git add .
@@ -1443,10 +1444,20 @@ if [[ "${Continue_selecting}" == "1" ]]; then
   cp -Rf .github/workflows ${FOLDER_NAME}/.github/workflows
   
   if [[ `ls -1 "${FOLDER_NAME}/build/${FOLDER_NAME}/start-up" |grep -Eoc '[0-9]+\.ini'` -eq '1' ]]; then
-    START_SECON="$(ls -1 "${FOLDER_NAME}/build/${FOLDER_NAME}/start-up" |grep -Eo '[0-9]+\.ini' |awk 'END {print}' |grep -Eo '[0-9]+')"
-    START_TIME=`date +'%Y-%m-%d %H:%M:%S'`
-    START_SECONDS=$(date --date="$START_TIME" +%s)
-    mv "${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${START_SECON}.ini" ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${START_SECONDS}.ini
+    t1="$(ls -1 "${FOLDER_NAME}/build/${FOLDER_NAME}/start-up" |grep -Eo '[0-9]+\.ini' |awk 'END {print}' |grep -Eo '[0-9]+')"
+    END_TIME=`date +'%Y-%m-%d %H:%M:%S'`
+    t2=`date -d "$END_TIME" +%s`
+    SECONDS=$((t2-t1))
+    HOUR=$(( $SECONDS/3600 ))
+    MIN=$(( ($SECONDS-${HOUR}*3600)/60 ))
+    echo "${MIN}"
+    if [[ "${MIN}" -lt "40" ]]; then
+      START_TIME=`date +'%Y-%m-%d %H:%M:%S'`
+      START_SECONDS=$(date --date="$START_TIME" +%s)
+      mv "${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${t1}.ini" ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${START_SECONDS}.ini
+    else
+      rm -rf ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/${t1}.ini
+    fi
   fi
   echo "${SOURCE}$(date +%Y年%m月%d号%H时%M分%S秒)" > ${FOLDER_NAME}/build/${FOLDER_NAME}/start-up/start
   cd ${FOLDER_NAME}
