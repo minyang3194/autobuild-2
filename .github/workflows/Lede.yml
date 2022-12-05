@@ -20,14 +20,11 @@ on:
   workflow_dispatch:
     inputs:
       REPO_BRANCH:
-        description: '天灵源码-请选择分支'
+        description: '大雕源码'
         required: false
-        default: 'openwrt-21.02'
+        default: 'master'
         type: choice
         options:
-          - 'openwrt-21.02'
-          - 'openwrt-18.06-k5.4'
-          - 'openwrt-18.06'
           - 'master'
       CONFIG_FILE:
         description: '配置文件'
