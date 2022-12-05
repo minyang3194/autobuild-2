@@ -136,7 +136,7 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}
         git clone https://github.com/281677160/common-main build/common
-        mv -f build/common/*.sh build/${{matrix.target}}/
+        mv -f build/common/*.sh build/${FOLDER_NAME}/
         chmod -R +x build
         export INPUTS_INFORMATION_NOTICE="${{ github.event.inputs.INFORMATION_NOTICE }}"
         export INPUTS_REPO_BRANCH="${{ github.event.inputs.REPO_BRANCH }}"
@@ -148,7 +148,7 @@ jobs:
         export INPUTS_COLLECTED_PACKAGES="${{ github.event.inputs.COLLECTED_PACKAGES }}"
         export INPUTS_CPU_SELECTION="${{ github.event.inputs.CPU_SELECTION }}"
         if [[ -n "${{ github.event.inputs.REPO_BRANCH }}" ]]; then
-          source build/${{matrix.target}}/common.sh && settings_variable
+          source build/${FOLDER_NAME}/common.sh && settings_variable
         fi
         source build/${{matrix.target}}/common.sh && Diy_menu1
         
@@ -169,7 +169,7 @@ jobs:
       run: |
         git clone -b "${REPO_BRANCH}" --single-branch "${REPO_URL}" openwrt
         ln -sf /${{ env.DIY_WORK }}/openwrt ${GITHUB_WORKSPACE}/openwrt
-        source ${GITHUB_WORKSPACE}/build/${{matrix.target}}/common.sh && Diy_checkout
+        source ${GITHUB_WORKSPACE}/build/${FOLDER_NAME}/common.sh && Diy_checkout
     
     - name: 公 告
       if: env.REPO_TOKEN
@@ -177,7 +177,7 @@ jobs:
         cd ${GITHUB_WORKSPACE}
         cp -Rf `find ./ -maxdepth 1 -type d ! -path './openwrt' ! -path './'` openwrt
         cd openwrt
-        source build/${{matrix.target}}/common.sh && Diy_menu2
+        source build/${FOLDER_NAME}/common.sh && Diy_menu2
  
     - name: 增加插件源
       if: env.REPO_TOKEN
@@ -192,7 +192,7 @@ jobs:
       run: |
         cd openwrt
         source $BUILD_PATH/$DIY_PART_SH
-        source build/${{matrix.target}}/common.sh && Diy_Publicarea
+        source build/${FOLDER_NAME}/common.sh && Diy_Publicarea
         
     - name: 加载源、补丁和files文件夹
       if: env.REPO_TOKEN
