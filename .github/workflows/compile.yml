@@ -77,7 +77,7 @@ jobs:
     - name: 检测CPU
       run: |
         cd ${GITHUB_WORKSPACE}
-        export CPU_OPTIMIZATION="8272"
+        export CPU_OPTIMIZATION="8370"
         source build/${FOLDER_NAME}/common.sh && CPU_Priority
 
     - name: 下载"${{matrix.target}}"源码
