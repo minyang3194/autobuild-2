@@ -119,7 +119,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [Immortalwrt]
+        target: [Lede]
         
     steps:
     - name: 密匙检测（密匙为空则退出）
