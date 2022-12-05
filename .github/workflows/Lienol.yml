@@ -109,6 +109,8 @@ env:
   PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  SOURCE_CODE: LIENOL
+  FOLDER_NAME: Lienol
   TZ: Asia/Shanghai
 
 jobs:
@@ -116,14 +118,6 @@ jobs:
     name: 启动"${{ github.event.inputs.REPO_BRANCH }}"触发编译
     runs-on: ubuntu-20.04
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
-
-    env:
-      SOURCE_CODE: LIENOL
-      FOLDER_NAME: ${{ matrix.target }}
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [Lienol]
         
     steps:
     - name: 密匙检测（密匙为空则退出）
