@@ -15,7 +15,7 @@
 #
 #
 
-name: 晶晨CPU系列
+name: Amlogic.yml
 on:
   workflow_dispatch:
     inputs:
